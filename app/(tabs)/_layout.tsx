@@ -1,33 +1,91 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import { Text } from "react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const activeColor = "#3c2c84ff";
+  const inactiveColor = "#999";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: {
+          height: 62,
+          paddingBottom: 10,
+          paddingTop: 5,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons
+              name="home-outline"
+              size={size}
+              color={focused ? activeColor : inactiveColor}
+            />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text style={{ color: focused ? activeColor : inactiveColor, fontSize: 12 }}>
+              Trang chủ
+            </Text>
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="explore"
+        name="products"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons
+              name="pricetag-outline"
+              size={size}
+              color={focused ? activeColor : inactiveColor}
+            />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text style={{ color: focused ? activeColor : inactiveColor, fontSize: 12 }}>
+              Sản phẩm
+            </Text>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="orders"
+        options={{
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons
+              name="receipt-outline"
+              size={size}
+              color={focused ? activeColor : inactiveColor}
+            />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text style={{ color: focused ? activeColor : inactiveColor, fontSize: 12 }}>
+              Đơn hàng
+            </Text>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons
+              name="person-outline"
+              size={size}
+              color={focused ? activeColor : inactiveColor}
+            />
+          ),
+          tabBarLabel: ({ focused }) => (
+            <Text style={{ color: focused ? activeColor : inactiveColor, fontSize: 12 }}>
+              Tài khoản
+            </Text>
+          ),
         }}
       />
     </Tabs>
