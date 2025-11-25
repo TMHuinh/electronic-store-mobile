@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import { Text } from "react-native";
 
 export default function TabLayout() {
-  const activeColor = "#3c2c84ff";
+  const activeColor = "#920c0cff";
   const inactiveColor = "#999";
 
   return (

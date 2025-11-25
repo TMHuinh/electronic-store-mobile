@@ -1,18 +1,17 @@
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  Image,
+  ActivityIndicator,
   FlatList,
-  TouchableOpacity,
+  Image,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { API_URL } from "../../constants/api";
 import Header from "../../components/Header";
+import { API_URL } from "../../constants/api";
 
 interface Product {
   _id: string;
@@ -57,7 +56,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Header />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -145,7 +144,7 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

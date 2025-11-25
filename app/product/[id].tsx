@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { API_URL } from "../../constants/api";
 import { useAuth } from "../../context/AuthContext";
@@ -32,7 +32,7 @@ interface Product {
 
 interface Review {
   _id: string;
-  user?: { name: string };
+  user?: { _id: string; name: string };
   rating: number;
   comment: string;
   createdAt: string;
@@ -53,26 +53,30 @@ export default function ProductDetailScreen() {
   const [visibleCount, setVisibleCount] = useState(2);
   const router = useRouter();
 
+  // Lấy chi tiết sản phẩm, reviews, liên quan
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Chi tiết sản phẩm
         const res = await fetch(`${API_URL}/products/${id}`);
         const data = await res.json();
         setProduct(data);
 
-        // Review
         const resReviews = await fetch(`${API_URL}/reviews/product/${id}`);
-        setReviews(await resReviews.json());
+        const revData: Review[] = await resReviews.json();
+        setReviews(revData);
 
-        // Kiểm tra có thể review không
+        // Kiểm tra xem user có thể review không (đã mua & chưa review)
         if (token) {
           const check = await fetch(`${API_URL}/reviews/can-review/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const result = await check.json();
-          setCanReview(result.canReview);
+          const userId = JSON.parse(atob(token.split(".")[1])).id;
+          const userAlreadyReviewed = revData.some(
+            (r) => r.user?._id === userId
+          );
+          setCanReview(result.canReview && !userAlreadyReviewed);
         }
 
         // Sản phẩm liên quan
@@ -113,7 +117,7 @@ export default function ProductDetailScreen() {
     if (!product) return;
     if (!token) {
       Alert.alert("⚠️", "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!");
-      router.push("/(tabs)/login");
+      router.push("/login");
       return;
     }
     try {
@@ -126,7 +130,7 @@ export default function ProductDetailScreen() {
 
   const handleBuyNow = async () => {
     await handleAddToCart();
-    router.push("/(tabs)/cart" as any);
+    router.push("/cart" as any);
   };
 
   if (loading || !product)
@@ -161,8 +165,14 @@ export default function ProductDetailScreen() {
         </View>
         <Text style={styles.price}>{product.price.toLocaleString()}₫</Text>
 
-        {/* Chọn số lượng */}
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+        {/* Số lượng */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
           <TouchableOpacity
             style={styles.qtyBtn}
             onPress={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -182,6 +192,7 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Button */}
         <View style={styles.btnRow}>
           <TouchableOpacity
             style={[styles.btn, { borderColor: "#28a745" }]}
@@ -192,7 +203,6 @@ export default function ProductDetailScreen() {
               Thêm vào giỏ
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: "#dc3545" }]}
             onPress={handleBuyNow}
@@ -207,7 +217,7 @@ export default function ProductDetailScreen() {
         </Text>
       </View>
 
-      {/* 🔹 Đánh giá sản phẩm */}
+      {/* Review */}
       <View style={styles.reviewContainer}>
         <Text style={styles.sectionTitle}>Đánh giá sản phẩm</Text>
         {reviews.length === 0 ? (
@@ -217,7 +227,9 @@ export default function ProductDetailScreen() {
             {reviews.slice(0, visibleCount).map((r) => (
               <View key={r._id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewUser}>{r.user?.name || "Ẩn danh"}</Text>
+                  <Text style={styles.reviewUser}>
+                    {r.user?.name || "Ẩn danh"}
+                  </Text>
                   {renderStars(r.rating, 14)}
                 </View>
                 <Text style={styles.reviewComment}>{r.comment}</Text>
@@ -279,9 +291,12 @@ export default function ProductDetailScreen() {
                   });
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.message);
+
+                  // Thêm review mới
                   setReviews((prev) => [data.review, ...prev]);
                   setComment("");
                   setRating(0);
+                  setCanReview(false); // Ẩn form sau khi review
                   Alert.alert("✅", "Đánh giá thành công!");
                 } catch (err: any) {
                   Alert.alert("❌", err.message);
@@ -294,7 +309,7 @@ export default function ProductDetailScreen() {
         )}
       </View>
 
-      {/* 🔹 Sản phẩm liên quan */}
+      {/* Sản phẩm liên quan */}
       {related.length > 0 && (
         <View style={{ marginTop: 20, paddingHorizontal: 15 }}>
           <Text style={styles.sectionTitle}>Sản phẩm tương tự</Text>
@@ -307,7 +322,10 @@ export default function ProductDetailScreen() {
               <TouchableOpacity
                 style={styles.relatedCard}
                 onPress={() =>
-                  router.push({ pathname: "/product/[id]", params: { id: item._id } })
+                  router.push({
+                    pathname: "/product/[id]",
+                    params: { id: item._id },
+                  })
                 }
               >
                 <Image
@@ -321,7 +339,9 @@ export default function ProductDetailScreen() {
                 <Text style={styles.relatedName} numberOfLines={1}>
                   {item.name}
                 </Text>
-                <Text style={styles.relatedPrice}>{item.price.toLocaleString()}₫</Text>
+                <Text style={styles.relatedPrice}>
+                  {item.price.toLocaleString()}₫
+                </Text>
               </TouchableOpacity>
             )}
           />
@@ -331,6 +351,7 @@ export default function ProductDetailScreen() {
   );
 }
 
+// Styles giữ nguyên như cũ
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   image: { width: 400, height: 280, borderRadius: 10, marginRight: 10 },
@@ -339,7 +360,11 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   reviewText: { color: "#888", marginLeft: 6, fontSize: 13 },
   price: { fontSize: 22, color: "#d32f2f", fontWeight: "700", marginBottom: 8 },
-  btnRow: { flexDirection: "row", justifyContent: "space-between", marginVertical: 10 },
+  btnRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
   btn: {
     flex: 1,
     flexDirection: "row",
@@ -352,7 +377,12 @@ const styles = StyleSheet.create({
   },
   btnText: { fontSize: 15, fontWeight: "600" },
   desc: { color: "#555", lineHeight: 22, fontSize: 14 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#333", marginVertical: 10 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333",
+    marginVertical: 10,
+  },
   relatedCard: {
     width: 150,
     marginRight: 10,
@@ -369,23 +399,70 @@ const styles = StyleSheet.create({
           shadowOffset: { width: 0, height: 2 },
         }),
   },
-  relatedImage: { width: "100%", height: 120, borderRadius: 8, marginBottom: 5 },
+  relatedImage: {
+    width: "100%",
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
   relatedName: { fontWeight: "600", fontSize: 14, color: "#333" },
   relatedPrice: { color: "#28a745", fontWeight: "bold", marginVertical: 2 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   reviewContainer: { paddingHorizontal: 15, marginTop: 20 },
-  reviewCard: { backgroundColor: "#f8f9fa", padding: 10, borderRadius: 8, marginBottom: 8 },
+  reviewCard: {
+    backgroundColor: "#f8f9fa",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
   reviewHeader: { flexDirection: "row", justifyContent: "space-between" },
   reviewUser: { fontWeight: "600", color: "#333" },
   reviewComment: { color: "#555", marginTop: 4 },
   reviewDate: { color: "#999", fontSize: 12, marginTop: 4 },
-  loadMoreReviewBtn: { alignSelf: "center", padding: 8, marginTop: 8, borderRadius: 8, backgroundColor: "#e9ecef" },
+  loadMoreReviewBtn: {
+    alignSelf: "center",
+    padding: 8,
+    marginTop: 8,
+    borderRadius: 8,
+    backgroundColor: "#e9ecef",
+  },
   loadMoreText: { color: "#007bff", fontWeight: "600" },
-  reviewForm: { marginTop: 15, padding: 10, backgroundColor: "#fff", borderRadius: 10, borderWidth: 1, borderColor: "#eee" },
-  formTitle: { fontWeight: "700", fontSize: 15, marginBottom: 8, color: "#333" },
-  reviewInput: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 8, minHeight: 70, marginBottom: 10, textAlignVertical: "top" },
-  submitBtn: { backgroundColor: "#28a745", borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  reviewForm: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  formTitle: {
+    fontWeight: "700",
+    fontSize: 15,
+    marginBottom: 8,
+    color: "#333",
+  },
+  reviewInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 8,
+    minHeight: 70,
+    marginBottom: 10,
+    textAlignVertical: "top",
+  },
+  submitBtn: {
+    backgroundColor: "#28a745",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
   submitText: { color: "#fff", fontWeight: "bold" },
-  qtyBtn: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 2 },
+  qtyBtn: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+  },
   qtyText: { fontSize: 18, fontWeight: "600" },
 });
